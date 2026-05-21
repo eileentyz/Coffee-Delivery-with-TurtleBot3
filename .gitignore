@@ -1,6 +1,10 @@
 build/
 install/
 log/
+DynamixelSDK/
+turtlebot3/
+turtlebot3_msgs/
+
 __pycache__/
 *.pyc
 *.bag
