@@ -44,8 +44,8 @@ ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
 
 ```bash
 export TURTLEBOT3_MODEL=burger
-ros2 launch turtlebot3_navigation2 navigation2.launch.py \
-    map:=$HOME/house_office_map.yaml
+ros2 launch turtlebot3_navigation2 navigation2.launch.py use_sim_time:=True map:=$HOME/house_office_map.yaml
+
 ```
 
 In RViz, use **2D Pose Estimate** to set the robot's initial pose so AMCL can localize.
@@ -106,9 +106,29 @@ ros2 service call /start_coffee_delivery std_srvs/srv/Trigger
 # → success=False, message="Coffee delivery task is already running."
 ```
 
+## Package layout
+
+```
+coffee_delivery_demo/
+├── coffee_delivery_demo_node.py   # ROS node + service callbacks (entry point)
+├── delivery_task.py               # 5-step workflow + worker thread + continue signal
+├── nav2_navigator.py              # Wrapper around Nav2 NavigateToPose action client
+├── waypoints.py                   # Named map-frame waypoints
+└── __init__.py
+```
+
+Responsibilities are separated so each module has one job:
+
+| Module | What it does |
+|---|---|
+| `waypoints.py` | Just the coordinates — tune once, used everywhere |
+| `nav2_navigator.py` | "Go to this pose" — knows nothing about coffee delivery |
+| `delivery_task.py` | The state machine and worker thread that runs the delivery |
+| `coffee_delivery_demo_node.py` | ROS plumbing: services, node lifecycle |
+
 ## Customizing waypoints
 
-Edit `self.waypoints` in `coffee_delivery_demo/coffee_delivery_demo_node.py`. Each entry takes a position `(x, y)` and an orientation `(z, w)` in the map frame. The easiest way to capture coordinates is to drive the robot to the desired spot in RViz and read `/amcl_pose`:
+Edit `WAYPOINTS` in `coffee_delivery_demo/waypoints.py`. Each entry takes a position `(x, y)` and an orientation `(z, w)` in the map frame. The easiest way to capture coordinates is to drive the robot to the desired spot in RViz and read `/amcl_pose`:
 
 ```bash
 ros2 topic echo /amcl_pose --once
