@@ -1,0 +1,42 @@
+@startuml
+autonumber
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+participant "Fleet Manager / Coffee UI" as FM
+participant "Python VDA5050 Adapter" as Adapter
+participant "Task Service / Nav2 Bridge" as Service
+participant "Nav2" as Nav2
+participant "TurtleBot in Gazebo" as Bot
+
+== Receive Order ==
+FM -> Adapter: Publish VDA5050 Order JSON\n/order
+Adapter -> Adapter: receiveOrder()
+Adapter -> Adapter: acceptOrder()\nValidate orderId, nodes, sequenceId
+
+== Handle First Node ==
+Adapter -> Adapter: handleOrder()\nMap nodeId to location
+Adapter -> Service: Call trigger task service\ncoffee_station
+Service -> Nav2: Send NavigateToPose goal
+Nav2 -> Bot: Execute navigation
+
+Bot --> Nav2: Reached coffee_station
+Nav2 --> Service: Goal succeeded
+Service --> Adapter: Task complete
+
+Adapter -> Adapter: Run pickupCoffee action
+Adapter -> FM: publishState()\ncoffee picked up
+
+== Handle Delivery Node ==
+Adapter -> Service: Call trigger task service\ndesk_1
+Service -> Nav2: Send NavigateToPose goal
+Nav2 -> Bot: Execute navigation
+
+Bot --> Nav2: Reached desk_1
+Nav2 --> Service: Goal succeeded
+Service --> Adapter: Task complete
+
+Adapter -> Adapter: Run dropoffCoffee action
+Adapter -> FM: publishState()\norder completed
+
+@enduml
